@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-
-	"github.com/kr/pretty"
 )
 
 func main() {
@@ -14,12 +12,13 @@ func main() {
 	}
 
 	searchQuery := "(game:paper game:mtgo -game:arena in:common or in:uncommon) game:arena r>=rare"
-	if results, err := client.SearchCards(searchQuery); err != nil {
-		fmt.Println(results.TotalCards)
-		for _, card := range results.Data {
-			pretty.Println(card)
-		}
+
+	fmt.Printf("Searching for query %s\n", searchQuery)
+	results, err := client.SearchCards(searchQuery)
+	if err != nil {
+		return
 	}
+	fmt.Println(results.TotalCards)
 }
 
 func examples(client *Client) {
