@@ -100,3 +100,15 @@ func (c *Client) SearchCardsByName(name string) (*List, error) {
 	err := c.makeRequest("/cards/search?q="+url.QueryEscape(query), &list)
 	return &list, err
 }
+
+func (c *Client) GetCardPrintings(printsSearchURI string) (*List, error) {
+	var list List
+	// Extract the path from the full URI
+	parsedURL, err := url.Parse(printsSearchURI)
+	if err != nil {
+		return nil, err
+	}
+	endpoint := parsedURL.Path + "?" + parsedURL.RawQuery
+	err = c.makeRequest(endpoint, &list)
+	return &list, err
+}
