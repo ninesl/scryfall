@@ -10,106 +10,72 @@ import (
 	"database/sql"
 )
 
-const getCards = `-- name: GetCards :many
-SELECT arena_id, id, lang, mtgo_id, mtgo_foil_id, multiverse_ids, tcgplayer_id, tcgplayer_etched_id, cardmarket_id, object, layout, oracle_id, prints_search_uri, rulings_uri, scryfall_uri, uri, all_parts, card_faces, cmc, color_identity, color_indicator, colors, defense, edhrec_rank, game_changer, hand_modifier, keywords, legalities, life_modifier, loyalty, mana_cost, name, oracle_text, penny_rank, power, produced_mana, reserved, toughness, type_line, artist, artist_ids, attraction_lights, booster, border_color, card_back_id, collector_number, content_warning, digital, finishes, flavor_name, flavor_text, frame_effects, frame, full_art, games, highres_image, illustration_id, image_status, image_uris, oversized, prices, printed_name, printed_text, printed_type_line, promo, promo_types, purchase_uris, rarity, related_uris, released_at, reprint, scryfall_set_uri, set_name, set_search_uri, set_type, set_uri, set_code, set_id, story_spotlight, textless, variation, variation_of, security_stamp, watermark, preview FROM cards
+const getCardsWithPrintings = `-- name: GetCardsWithPrintings :many
+SELECT 
+    c.oracle_id,
+    c.name,
+    c.layout,
+    c.cmc,
+    c.color_identity,
+    c.colors,
+    c.mana_cost,
+    c.oracle_text,
+    c.type_line,
+    p.id as printing_id,
+    p.rarity,
+    p.games,
+    p."set",
+    p.set_name,
+    p.released_at
+FROM cards c
+JOIN printings p ON c.oracle_id = p.oracle_id
+ORDER BY c.name, p.released_at DESC
 `
 
-// Get all cards
-func (q *Queries) GetCards(ctx context.Context) ([]Card, error) {
-	rows, err := q.db.QueryContext(ctx, getCards)
+type GetCardsWithPrintingsRow struct {
+	OracleID      string
+	Name          string
+	Layout        string
+	Cmc           float64
+	ColorIdentity string
+	Colors        sql.NullString
+	ManaCost      sql.NullString
+	OracleText    sql.NullString
+	TypeLine      string
+	PrintingID    string
+	Rarity        string
+	Games         string
+	Set           string
+	SetName       string
+	ReleasedAt    string
+}
+
+// Get all cards with their printings
+func (q *Queries) GetCardsWithPrintings(ctx context.Context) ([]GetCardsWithPrintingsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCardsWithPrintings)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Card
+	var items []GetCardsWithPrintingsRow
 	for rows.Next() {
-		var i Card
+		var i GetCardsWithPrintingsRow
 		if err := rows.Scan(
-			&i.ArenaID,
-			&i.ID,
-			&i.Lang,
-			&i.MtgoID,
-			&i.MtgoFoilID,
-			&i.MultiverseIds,
-			&i.TcgplayerID,
-			&i.TcgplayerEtchedID,
-			&i.CardmarketID,
-			&i.Object,
-			&i.Layout,
 			&i.OracleID,
-			&i.PrintsSearchUri,
-			&i.RulingsUri,
-			&i.ScryfallUri,
-			&i.Uri,
-			&i.AllParts,
-			&i.CardFaces,
+			&i.Name,
+			&i.Layout,
 			&i.Cmc,
 			&i.ColorIdentity,
-			&i.ColorIndicator,
 			&i.Colors,
-			&i.Defense,
-			&i.EdhrecRank,
-			&i.GameChanger,
-			&i.HandModifier,
-			&i.Keywords,
-			&i.Legalities,
-			&i.LifeModifier,
-			&i.Loyalty,
 			&i.ManaCost,
-			&i.Name,
 			&i.OracleText,
-			&i.PennyRank,
-			&i.Power,
-			&i.ProducedMana,
-			&i.Reserved,
-			&i.Toughness,
 			&i.TypeLine,
-			&i.Artist,
-			&i.ArtistIds,
-			&i.AttractionLights,
-			&i.Booster,
-			&i.BorderColor,
-			&i.CardBackID,
-			&i.CollectorNumber,
-			&i.ContentWarning,
-			&i.Digital,
-			&i.Finishes,
-			&i.FlavorName,
-			&i.FlavorText,
-			&i.FrameEffects,
-			&i.Frame,
-			&i.FullArt,
-			&i.Games,
-			&i.HighresImage,
-			&i.IllustrationID,
-			&i.ImageStatus,
-			&i.ImageUris,
-			&i.Oversized,
-			&i.Prices,
-			&i.PrintedName,
-			&i.PrintedText,
-			&i.PrintedTypeLine,
-			&i.Promo,
-			&i.PromoTypes,
-			&i.PurchaseUris,
+			&i.PrintingID,
 			&i.Rarity,
-			&i.RelatedUris,
-			&i.ReleasedAt,
-			&i.Reprint,
-			&i.ScryfallSetUri,
+			&i.Games,
+			&i.Set,
 			&i.SetName,
-			&i.SetSearchUri,
-			&i.SetType,
-			&i.SetUri,
-			&i.SetCode,
-			&i.SetID,
-			&i.StorySpotlight,
-			&i.Textless,
-			&i.Variation,
-			&i.VariationOf,
-			&i.SecurityStamp,
-			&i.Watermark,
-			&i.Preview,
+			&i.ReleasedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -126,43 +92,19 @@ func (q *Queries) GetCards(ctx context.Context) ([]Card, error) {
 
 const upsertCard = `-- name: UpsertCard :exec
 INSERT INTO cards (
-    arena_id, id, lang, mtgo_id, mtgo_foil_id, multiverse_ids,
-    tcgplayer_id, tcgplayer_etched_id, cardmarket_id, object, layout, oracle_id,
-    prints_search_uri, rulings_uri, scryfall_uri, uri, all_parts, card_faces,
-    cmc, color_identity, color_indicator, colors, defense, edhrec_rank,
-    game_changer, hand_modifier, keywords, legalities, life_modifier, loyalty,
-    mana_cost, name, oracle_text, penny_rank, power, produced_mana, reserved,
-    toughness, type_line, artist, artist_ids, attraction_lights, booster,
-    border_color, card_back_id, collector_number, content_warning, digital,
-    finishes, flavor_name, flavor_text, frame_effects, frame, full_art, games,
-    highres_image, illustration_id, image_status, image_uris, oversized, prices,
-    printed_name, printed_text, printed_type_line, promo, promo_types,
-    purchase_uris, rarity, related_uris, released_at, reprint, scryfall_set_uri,
-    set_name, set_search_uri, set_type, set_uri, set_code, set_id,
-    story_spotlight, textless, variation, variation_of, security_stamp,
-    watermark, preview
+    oracle_id, name, layout, prints_search_uri, rulings_uri,
+    all_parts, card_faces, cmc, color_identity, color_indicator, colors,
+    defense, edhrec_rank, game_changer, hand_modifier, keywords, legalities,
+    life_modifier, loyalty, mana_cost, oracle_text, penny_rank, power,
+    produced_mana, reserved, toughness, type_line
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
-ON CONFLICT(id) DO UPDATE SET
-    arena_id = excluded.arena_id,
-    lang = excluded.lang,
-    mtgo_id = excluded.mtgo_id,
-    mtgo_foil_id = excluded.mtgo_foil_id,
-    multiverse_ids = excluded.multiverse_ids,
-    tcgplayer_id = excluded.tcgplayer_id,
-    tcgplayer_etched_id = excluded.tcgplayer_etched_id,
-    cardmarket_id = excluded.cardmarket_id,
-    object = excluded.object,
+ON CONFLICT(oracle_id) DO UPDATE SET
+    name = excluded.name,
     layout = excluded.layout,
-    oracle_id = excluded.oracle_id,
     prints_search_uri = excluded.prints_search_uri,
     rulings_uri = excluded.rulings_uri,
-    scryfall_uri = excluded.scryfall_uri,
-    uri = excluded.uri,
     all_parts = excluded.all_parts,
     card_faces = excluded.card_faces,
     cmc = excluded.cmc,
@@ -178,14 +120,109 @@ ON CONFLICT(id) DO UPDATE SET
     life_modifier = excluded.life_modifier,
     loyalty = excluded.loyalty,
     mana_cost = excluded.mana_cost,
-    name = excluded.name,
     oracle_text = excluded.oracle_text,
     penny_rank = excluded.penny_rank,
     power = excluded.power,
     produced_mana = excluded.produced_mana,
     reserved = excluded.reserved,
     toughness = excluded.toughness,
-    type_line = excluded.type_line,
+    type_line = excluded.type_line
+`
+
+type UpsertCardParams struct {
+	OracleID        string
+	Name            string
+	Layout          string
+	PrintsSearchUri string
+	RulingsUri      string
+	AllParts        sql.NullString
+	CardFaces       sql.NullString
+	Cmc             float64
+	ColorIdentity   string
+	ColorIndicator  sql.NullString
+	Colors          sql.NullString
+	Defense         sql.NullString
+	EdhrecRank      sql.NullInt64
+	GameChanger     sql.NullBool
+	HandModifier    sql.NullString
+	Keywords        string
+	Legalities      string
+	LifeModifier    sql.NullString
+	Loyalty         sql.NullString
+	ManaCost        sql.NullString
+	OracleText      sql.NullString
+	PennyRank       sql.NullInt64
+	Power           sql.NullString
+	ProducedMana    sql.NullString
+	Reserved        bool
+	Toughness       sql.NullString
+	TypeLine        string
+}
+
+// Insert or update a card (oracle-level)
+func (q *Queries) UpsertCard(ctx context.Context, arg UpsertCardParams) error {
+	_, err := q.db.ExecContext(ctx, upsertCard,
+		arg.OracleID,
+		arg.Name,
+		arg.Layout,
+		arg.PrintsSearchUri,
+		arg.RulingsUri,
+		arg.AllParts,
+		arg.CardFaces,
+		arg.Cmc,
+		arg.ColorIdentity,
+		arg.ColorIndicator,
+		arg.Colors,
+		arg.Defense,
+		arg.EdhrecRank,
+		arg.GameChanger,
+		arg.HandModifier,
+		arg.Keywords,
+		arg.Legalities,
+		arg.LifeModifier,
+		arg.Loyalty,
+		arg.ManaCost,
+		arg.OracleText,
+		arg.PennyRank,
+		arg.Power,
+		arg.ProducedMana,
+		arg.Reserved,
+		arg.Toughness,
+		arg.TypeLine,
+	)
+	return err
+}
+
+const upsertPrinting = `-- name: UpsertPrinting :exec
+INSERT INTO printings (
+    id, oracle_id, arena_id, lang, mtgo_id, mtgo_foil_id, multiverse_ids,
+    tcgplayer_id, tcgplayer_etched_id, cardmarket_id, object, scryfall_uri, uri,
+    artist, artist_ids, attraction_lights, booster, border_color, card_back_id,
+    collector_number, content_warning, digital, finishes, flavor_name, flavor_text,
+    foil, nonfoil, frame_effects, frame, full_art, games, highres_image,
+    illustration_id, image_status, image_uris, oversized, prices, printed_name,
+    printed_text, printed_type_line, promo, promo_types, purchase_uris, rarity,
+    related_uris, released_at, reprint, scryfall_set_uri, set_name, set_search_uri,
+    set_type, set_uri, "set", set_id, story_spotlight, textless, variation,
+    variation_of, security_stamp, watermark, preview
+) VALUES (
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+)
+ON CONFLICT(id) DO UPDATE SET
+    oracle_id = excluded.oracle_id,
+    arena_id = excluded.arena_id,
+    lang = excluded.lang,
+    mtgo_id = excluded.mtgo_id,
+    mtgo_foil_id = excluded.mtgo_foil_id,
+    multiverse_ids = excluded.multiverse_ids,
+    tcgplayer_id = excluded.tcgplayer_id,
+    tcgplayer_etched_id = excluded.tcgplayer_etched_id,
+    cardmarket_id = excluded.cardmarket_id,
+    object = excluded.object,
+    scryfall_uri = excluded.scryfall_uri,
+    uri = excluded.uri,
     artist = excluded.artist,
     artist_ids = excluded.artist_ids,
     attraction_lights = excluded.attraction_lights,
@@ -198,6 +235,8 @@ ON CONFLICT(id) DO UPDATE SET
     finishes = excluded.finishes,
     flavor_name = excluded.flavor_name,
     flavor_text = excluded.flavor_text,
+    foil = excluded.foil,
+    nonfoil = excluded.nonfoil,
     frame_effects = excluded.frame_effects,
     frame = excluded.frame,
     full_art = excluded.full_art,
@@ -223,7 +262,7 @@ ON CONFLICT(id) DO UPDATE SET
     set_search_uri = excluded.set_search_uri,
     set_type = excluded.set_type,
     set_uri = excluded.set_uri,
-    set_code = excluded.set_code,
+    "set" = excluded."set",
     set_id = excluded.set_id,
     story_spotlight = excluded.story_spotlight,
     textless = excluded.textless,
@@ -234,9 +273,10 @@ ON CONFLICT(id) DO UPDATE SET
     preview = excluded.preview
 `
 
-type UpsertCardParams struct {
-	ArenaID           sql.NullInt64
+type UpsertPrintingParams struct {
 	ID                string
+	OracleID          string
+	ArenaID           sql.NullInt64
 	Lang              string
 	MtgoID            sql.NullInt64
 	MtgoFoilID        sql.NullInt64
@@ -245,35 +285,8 @@ type UpsertCardParams struct {
 	TcgplayerEtchedID sql.NullInt64
 	CardmarketID      sql.NullInt64
 	Object            string
-	Layout            string
-	OracleID          sql.NullString
-	PrintsSearchUri   string
-	RulingsUri        string
 	ScryfallUri       string
 	Uri               string
-	AllParts          sql.NullString
-	CardFaces         sql.NullString
-	Cmc               float64
-	ColorIdentity     sql.NullString
-	ColorIndicator    sql.NullString
-	Colors            sql.NullString
-	Defense           sql.NullString
-	EdhrecRank        sql.NullInt64
-	GameChanger       sql.NullBool
-	HandModifier      sql.NullString
-	Keywords          sql.NullString
-	Legalities        sql.NullString
-	LifeModifier      sql.NullString
-	Loyalty           sql.NullString
-	ManaCost          sql.NullString
-	Name              string
-	OracleText        sql.NullString
-	PennyRank         sql.NullInt64
-	Power             sql.NullString
-	ProducedMana      sql.NullString
-	Reserved          bool
-	Toughness         sql.NullString
-	TypeLine          string
 	Artist            sql.NullString
 	ArtistIds         sql.NullString
 	AttractionLights  sql.NullString
@@ -283,19 +296,21 @@ type UpsertCardParams struct {
 	CollectorNumber   string
 	ContentWarning    sql.NullBool
 	Digital           bool
-	Finishes          sql.NullString
+	Finishes          string
 	FlavorName        sql.NullString
 	FlavorText        sql.NullString
+	Foil              bool
+	Nonfoil           bool
 	FrameEffects      sql.NullString
 	Frame             string
 	FullArt           bool
-	Games             sql.NullString
+	Games             string
 	HighresImage      bool
 	IllustrationID    sql.NullString
 	ImageStatus       string
 	ImageUris         sql.NullString
 	Oversized         bool
-	Prices            sql.NullString
+	Prices            string
 	PrintedName       sql.NullString
 	PrintedText       sql.NullString
 	PrintedTypeLine   sql.NullString
@@ -303,7 +318,7 @@ type UpsertCardParams struct {
 	PromoTypes        sql.NullString
 	PurchaseUris      sql.NullString
 	Rarity            string
-	RelatedUris       sql.NullString
+	RelatedUris       string
 	ReleasedAt        string
 	Reprint           bool
 	ScryfallSetUri    string
@@ -311,7 +326,7 @@ type UpsertCardParams struct {
 	SetSearchUri      string
 	SetType           string
 	SetUri            string
-	SetCode           string
+	Set               string
 	SetID             string
 	StorySpotlight    bool
 	Textless          bool
@@ -322,11 +337,12 @@ type UpsertCardParams struct {
 	Preview           sql.NullString
 }
 
-// Insert or update a card
-func (q *Queries) UpsertCard(ctx context.Context, arg UpsertCardParams) error {
-	_, err := q.db.ExecContext(ctx, upsertCard,
-		arg.ArenaID,
+// Insert or update a printing
+func (q *Queries) UpsertPrinting(ctx context.Context, arg UpsertPrintingParams) error {
+	_, err := q.db.ExecContext(ctx, upsertPrinting,
 		arg.ID,
+		arg.OracleID,
+		arg.ArenaID,
 		arg.Lang,
 		arg.MtgoID,
 		arg.MtgoFoilID,
@@ -335,35 +351,8 @@ func (q *Queries) UpsertCard(ctx context.Context, arg UpsertCardParams) error {
 		arg.TcgplayerEtchedID,
 		arg.CardmarketID,
 		arg.Object,
-		arg.Layout,
-		arg.OracleID,
-		arg.PrintsSearchUri,
-		arg.RulingsUri,
 		arg.ScryfallUri,
 		arg.Uri,
-		arg.AllParts,
-		arg.CardFaces,
-		arg.Cmc,
-		arg.ColorIdentity,
-		arg.ColorIndicator,
-		arg.Colors,
-		arg.Defense,
-		arg.EdhrecRank,
-		arg.GameChanger,
-		arg.HandModifier,
-		arg.Keywords,
-		arg.Legalities,
-		arg.LifeModifier,
-		arg.Loyalty,
-		arg.ManaCost,
-		arg.Name,
-		arg.OracleText,
-		arg.PennyRank,
-		arg.Power,
-		arg.ProducedMana,
-		arg.Reserved,
-		arg.Toughness,
-		arg.TypeLine,
 		arg.Artist,
 		arg.ArtistIds,
 		arg.AttractionLights,
@@ -376,6 +365,8 @@ func (q *Queries) UpsertCard(ctx context.Context, arg UpsertCardParams) error {
 		arg.Finishes,
 		arg.FlavorName,
 		arg.FlavorText,
+		arg.Foil,
+		arg.Nonfoil,
 		arg.FrameEffects,
 		arg.Frame,
 		arg.FullArt,
@@ -401,7 +392,7 @@ func (q *Queries) UpsertCard(ctx context.Context, arg UpsertCardParams) error {
 		arg.SetSearchUri,
 		arg.SetType,
 		arg.SetUri,
-		arg.SetCode,
+		arg.Set,
 		arg.SetID,
 		arg.StorySpotlight,
 		arg.Textless,

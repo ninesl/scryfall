@@ -1,47 +1,41 @@
--- Get all cards
--- name: GetCards :many
-SELECT * FROM cards;
+-- Get all cards with their printings
+-- name: GetCardsWithPrintings :many
+SELECT 
+    c.oracle_id,
+    c.name,
+    c.layout,
+    c.cmc,
+    c.color_identity,
+    c.colors,
+    c.mana_cost,
+    c.oracle_text,
+    c.type_line,
+    p.id as printing_id,
+    p.rarity,
+    p.games,
+    p."set",
+    p.set_name,
+    p.released_at
+FROM cards c
+JOIN printings p ON c.oracle_id = p.oracle_id
+ORDER BY c.name, p.released_at DESC;
 
--- Insert or update a card
+-- Insert or update a card (oracle-level)
 -- name: UpsertCard :exec
 INSERT INTO cards (
-    arena_id, id, lang, mtgo_id, mtgo_foil_id, multiverse_ids,
-    tcgplayer_id, tcgplayer_etched_id, cardmarket_id, object, layout, oracle_id,
-    prints_search_uri, rulings_uri, scryfall_uri, uri, all_parts, card_faces,
-    cmc, color_identity, color_indicator, colors, defense, edhrec_rank,
-    game_changer, hand_modifier, keywords, legalities, life_modifier, loyalty,
-    mana_cost, name, oracle_text, penny_rank, power, produced_mana, reserved,
-    toughness, type_line, artist, artist_ids, attraction_lights, booster,
-    border_color, card_back_id, collector_number, content_warning, digital,
-    finishes, flavor_name, flavor_text, frame_effects, frame, full_art, games,
-    highres_image, illustration_id, image_status, image_uris, oversized, prices,
-    printed_name, printed_text, printed_type_line, promo, promo_types,
-    purchase_uris, rarity, related_uris, released_at, reprint, scryfall_set_uri,
-    set_name, set_search_uri, set_type, set_uri, set_code, set_id,
-    story_spotlight, textless, variation, variation_of, security_stamp,
-    watermark, preview
+    oracle_id, name, layout, prints_search_uri, rulings_uri,
+    all_parts, card_faces, cmc, color_identity, color_indicator, colors,
+    defense, edhrec_rank, game_changer, hand_modifier, keywords, legalities,
+    life_modifier, loyalty, mana_cost, oracle_text, penny_rank, power,
+    produced_mana, reserved, toughness, type_line
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
-ON CONFLICT(id) DO UPDATE SET
-    arena_id = excluded.arena_id,
-    lang = excluded.lang,
-    mtgo_id = excluded.mtgo_id,
-    mtgo_foil_id = excluded.mtgo_foil_id,
-    multiverse_ids = excluded.multiverse_ids,
-    tcgplayer_id = excluded.tcgplayer_id,
-    tcgplayer_etched_id = excluded.tcgplayer_etched_id,
-    cardmarket_id = excluded.cardmarket_id,
-    object = excluded.object,
+ON CONFLICT(oracle_id) DO UPDATE SET
+    name = excluded.name,
     layout = excluded.layout,
-    oracle_id = excluded.oracle_id,
     prints_search_uri = excluded.prints_search_uri,
     rulings_uri = excluded.rulings_uri,
-    scryfall_uri = excluded.scryfall_uri,
-    uri = excluded.uri,
     all_parts = excluded.all_parts,
     card_faces = excluded.card_faces,
     cmc = excluded.cmc,
@@ -57,14 +51,45 @@ ON CONFLICT(id) DO UPDATE SET
     life_modifier = excluded.life_modifier,
     loyalty = excluded.loyalty,
     mana_cost = excluded.mana_cost,
-    name = excluded.name,
     oracle_text = excluded.oracle_text,
     penny_rank = excluded.penny_rank,
     power = excluded.power,
     produced_mana = excluded.produced_mana,
     reserved = excluded.reserved,
     toughness = excluded.toughness,
-    type_line = excluded.type_line,
+    type_line = excluded.type_line;
+
+-- Insert or update a printing
+-- name: UpsertPrinting :exec
+INSERT INTO printings (
+    id, oracle_id, arena_id, lang, mtgo_id, mtgo_foil_id, multiverse_ids,
+    tcgplayer_id, tcgplayer_etched_id, cardmarket_id, object, scryfall_uri, uri,
+    artist, artist_ids, attraction_lights, booster, border_color, card_back_id,
+    collector_number, content_warning, digital, finishes, flavor_name, flavor_text,
+    foil, nonfoil, frame_effects, frame, full_art, games, highres_image,
+    illustration_id, image_status, image_uris, oversized, prices, printed_name,
+    printed_text, printed_type_line, promo, promo_types, purchase_uris, rarity,
+    related_uris, released_at, reprint, scryfall_set_uri, set_name, set_search_uri,
+    set_type, set_uri, "set", set_id, story_spotlight, textless, variation,
+    variation_of, security_stamp, watermark, preview
+) VALUES (
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+)
+ON CONFLICT(id) DO UPDATE SET
+    oracle_id = excluded.oracle_id,
+    arena_id = excluded.arena_id,
+    lang = excluded.lang,
+    mtgo_id = excluded.mtgo_id,
+    mtgo_foil_id = excluded.mtgo_foil_id,
+    multiverse_ids = excluded.multiverse_ids,
+    tcgplayer_id = excluded.tcgplayer_id,
+    tcgplayer_etched_id = excluded.tcgplayer_etched_id,
+    cardmarket_id = excluded.cardmarket_id,
+    object = excluded.object,
+    scryfall_uri = excluded.scryfall_uri,
+    uri = excluded.uri,
     artist = excluded.artist,
     artist_ids = excluded.artist_ids,
     attraction_lights = excluded.attraction_lights,
@@ -77,6 +102,8 @@ ON CONFLICT(id) DO UPDATE SET
     finishes = excluded.finishes,
     flavor_name = excluded.flavor_name,
     flavor_text = excluded.flavor_text,
+    foil = excluded.foil,
+    nonfoil = excluded.nonfoil,
     frame_effects = excluded.frame_effects,
     frame = excluded.frame,
     full_art = excluded.full_art,
@@ -102,7 +129,7 @@ ON CONFLICT(id) DO UPDATE SET
     set_search_uri = excluded.set_search_uri,
     set_type = excluded.set_type,
     set_uri = excluded.set_uri,
-    set_code = excluded.set_code,
+    "set" = excluded."set",
     set_id = excluded.set_id,
     story_spotlight = excluded.story_spotlight,
     textless = excluded.textless,

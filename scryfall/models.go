@@ -9,8 +9,39 @@ import (
 )
 
 type Card struct {
-	ArenaID           sql.NullInt64
+	OracleID        string
+	Name            string
+	Layout          string
+	PrintsSearchUri string
+	RulingsUri      string
+	AllParts        sql.NullString
+	CardFaces       sql.NullString
+	Cmc             float64
+	ColorIdentity   string
+	ColorIndicator  sql.NullString
+	Colors          sql.NullString
+	Defense         sql.NullString
+	EdhrecRank      sql.NullInt64
+	GameChanger     sql.NullBool
+	HandModifier    sql.NullString
+	Keywords        string
+	Legalities      string
+	LifeModifier    sql.NullString
+	Loyalty         sql.NullString
+	ManaCost        sql.NullString
+	OracleText      sql.NullString
+	PennyRank       sql.NullInt64
+	Power           sql.NullString
+	ProducedMana    sql.NullString
+	Reserved        bool
+	Toughness       sql.NullString
+	TypeLine        string
+}
+
+type Printing struct {
 	ID                string
+	OracleID          string
+	ArenaID           sql.NullInt64
 	Lang              string
 	MtgoID            sql.NullInt64
 	MtgoFoilID        sql.NullInt64
@@ -19,35 +50,8 @@ type Card struct {
 	TcgplayerEtchedID sql.NullInt64
 	CardmarketID      sql.NullInt64
 	Object            string
-	Layout            string
-	OracleID          sql.NullString
-	PrintsSearchUri   string
-	RulingsUri        string
 	ScryfallUri       string
 	Uri               string
-	AllParts          sql.NullString
-	CardFaces         sql.NullString
-	Cmc               float64
-	ColorIdentity     sql.NullString
-	ColorIndicator    sql.NullString
-	Colors            sql.NullString
-	Defense           sql.NullString
-	EdhrecRank        sql.NullInt64
-	GameChanger       sql.NullBool
-	HandModifier      sql.NullString
-	Keywords          sql.NullString
-	Legalities        sql.NullString
-	LifeModifier      sql.NullString
-	Loyalty           sql.NullString
-	ManaCost          sql.NullString
-	Name              string
-	OracleText        sql.NullString
-	PennyRank         sql.NullInt64
-	Power             sql.NullString
-	ProducedMana      sql.NullString
-	Reserved          bool
-	Toughness         sql.NullString
-	TypeLine          string
 	Artist            sql.NullString
 	ArtistIds         sql.NullString
 	AttractionLights  sql.NullString
@@ -57,19 +61,21 @@ type Card struct {
 	CollectorNumber   string
 	ContentWarning    sql.NullBool
 	Digital           bool
-	Finishes          sql.NullString
+	Finishes          string
 	FlavorName        sql.NullString
 	FlavorText        sql.NullString
+	Foil              bool
+	Nonfoil           bool
 	FrameEffects      sql.NullString
 	Frame             string
 	FullArt           bool
-	Games             sql.NullString
+	Games             string
 	HighresImage      bool
 	IllustrationID    sql.NullString
 	ImageStatus       string
 	ImageUris         sql.NullString
 	Oversized         bool
-	Prices            sql.NullString
+	Prices            string
 	PrintedName       sql.NullString
 	PrintedText       sql.NullString
 	PrintedTypeLine   sql.NullString
@@ -77,7 +83,7 @@ type Card struct {
 	PromoTypes        sql.NullString
 	PurchaseUris      sql.NullString
 	Rarity            string
-	RelatedUris       sql.NullString
+	RelatedUris       string
 	ReleasedAt        string
 	Reprint           bool
 	ScryfallSetUri    string
@@ -85,7 +91,7 @@ type Card struct {
 	SetSearchUri      string
 	SetType           string
 	SetUri            string
-	SetCode           string
+	Set               string
 	SetID             string
 	StorySpotlight    bool
 	Textless          bool
